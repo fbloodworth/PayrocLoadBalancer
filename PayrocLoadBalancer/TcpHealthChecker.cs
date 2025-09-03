@@ -42,7 +42,7 @@ namespace PayrocLoadBalancer
                         }
                         catch
                         {
-                        HandleUnhealthyBackend(backend);
+                            HandleUnhealthyBackend(backend);
                         }
                     }
                     
@@ -56,13 +56,13 @@ namespace PayrocLoadBalancer
             {
                 //First time failure, start draining
                 backend.MarkDraining();
-                Console.WriteLine($"[HC] Backend {backend} is draining");
+                Console.WriteLine($"[HC] Backend {backend.Host} {backend.Port} is draining");
             } 
             else if(backend.State == ServiceState.Draining && backend.ActiveConnections == 0)
             {
                 //Safe to remove from rotation
                 backend.MarkState(ServiceState.Down);
-                Console.WriteLine($"[HC] Backend {backend} is down");
+                Console.WriteLine($"[HC] Backend {backend.Host} {backend.Port} is down");
             }
         }
     }

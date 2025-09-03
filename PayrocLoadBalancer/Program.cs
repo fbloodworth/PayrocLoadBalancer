@@ -1,5 +1,4 @@
-﻿using LoadBalancer.Core;
-using PayrocLoadBalancer;
+﻿using PayrocLoadBalancer;
 
 class Program
 {

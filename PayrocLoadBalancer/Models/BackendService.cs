@@ -1,7 +1,4 @@
-using System;
-using LoadBalancer.Models; // refers to ServiceState enum
-
-namespace LoadBalancer.Models
+namespace PayrocLoadBalancer.Models
 {
     /// <summary>
     /// Represents a single backend service (server) in the load balancer pool.
@@ -54,10 +51,16 @@ namespace LoadBalancer.Models
         public void DecrementConnections() => ActiveConnections = Math.Max(0,
         ActiveConnections - 1);
 
-        public override string ToString()
+        public void MarkDraining()
         {
-            return $"{Host}:{Port} [{State}] (Connections: {ActiveConnections})";
+            if(State == ServiceState.Up)
+            {
+                State = ServiceState.Draining;
+                LastCheck = DateTime.UtcNow;
+            }
         }
+
+        public bool IsRemoveable => State == ServiceState.Draining && ActiveConnections == 0;
     }
 }
 

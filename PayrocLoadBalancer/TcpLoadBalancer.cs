@@ -1,27 +1,30 @@
-using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading.Tasks;
-using LoadBalancer.Models;
+using PayrocLoadBalancer.Interfaces;
+using PayrocLoadBalancer.Models;
 
-namespace LoadBalancer.Core
+namespace PayrocLoadBalancer
 {
     public class TcpLoadBalancer
     {
         private readonly TcpListener _listener;
         private readonly BackendServicePool _backendServicePool;
+        private readonly IHealthChecker _healthChecker;
+        private readonly CancellationTokenSource _cts = new();
 
         public TcpLoadBalancer(IPAddress listenAddress, int listenPort, IEnumerable<BackendService> services)
         {
             _listener = new TcpListener(listenAddress, listenPort);
             _backendServicePool = new BackendServicePool(services);
+            _healthChecker = new TcpHealthChecker(_backendServicePool);
         }
 
         public async Task StartAsync()
         {
             _listener.Start();
             Console.WriteLine($"[LB] Listening on {_listener.LocalEndpoint}");
+
+            _ = _healthChecker.RunAsync(_cts.Token); //background health checking
 
             while (true)
             {
@@ -41,20 +44,43 @@ namespace LoadBalancer.Core
                 return;
             }
 
+            TcpClient? backendClient = null;
+            NetworkStream? clientStream = null;
+            NetworkStream? backendStream = null;
+
             try
             {
-                using var backendClient = new TcpClient();
+                backendClient = new TcpClient
+                {
+                    ReceiveTimeout = 5000, // 5s read timeout
+                    SendTimeout = 5000, // 5s send timeout
+                };
+
+                client.ReceiveTimeout = 5000;
+                client.SendTimeout = 5000;
+
                 await backendClient.ConnectAsync(IPAddress.Parse(backend.Host), backend.Port);
 
                 backend.IncrementConnections();
 
-                using var clientStream = client.GetStream();
-                using var backendStream = backendClient.GetStream();
+                clientStream = client.GetStream();
+                backendStream = backendClient.GetStream();
 
+                //use linked tasks to prevent hangs
                 var t1 = clientStream.CopyToAsync(backendStream);
                 var t2 = backendStream.CopyToAsync(clientStream);
 
                 await Task.WhenAny(t1, t2);
+            }
+            catch (IOException ioEx)
+            { 
+                Console.WriteLine($"[LB] IO Error with backend {backend}: {ioEx.Message}");
+                backend.MarkState(ServiceState.Down);
+            }
+            catch (SocketException sockEx)
+            {
+                Console.WriteLine($"[LB] Socket Error with backend {backend}: {sockEx.Message}");
+                backend.MarkState(ServiceState.Down);
             }
             catch (Exception ex)
             {
@@ -63,8 +89,27 @@ namespace LoadBalancer.Core
             }
             finally
             {
+                try
+                {
+                    backendStream?.Close();
+                    clientStream?.Close();
+                    backendClient?.Close();
+                    client.Close();
+                }
+                catch (Exception ex) 
+                { 
+                    Console.WriteLine($"[LB] Cleanup error: {ex.Message}");
+                }
+
                 backend.DecrementConnections();
-                client.Close();
+
+                //If backend is draining and has no more active connections, mark it down
+                if (backend.IsRemoveable)
+                {
+                    backend.MarkState(ServiceState.Down);
+                    Console.WriteLine($"[LB] Backend {backend} fully drained and removed from pool.");
+                }
+
             }
         }
     }

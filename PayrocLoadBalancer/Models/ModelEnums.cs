@@ -1,4 +1,4 @@
-namespace LoadBalancer.Models
+namespace PayrocLoadBalancer.Models
 {
     /// <summary>
     /// Represents the state of a backend service in the load balancer.

@@ -1,10 +1,6 @@
 ﻿using PayrocLoadBalancer.Interfaces;
 using PayrocLoadBalancer.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Threading;
+
 namespace PayrocLoadBalancer
 {
     public class TcpHealthChecker : IHealthChecker

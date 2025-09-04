@@ -34,6 +34,12 @@ namespace PayrocLoadBalancer
             }
         }
 
+        public void Stop()
+        {
+            _cts.Cancel();
+            _listener.Stop();
+        }
+
         private async Task HandleClientAsync(TcpClient client)
         {
             var backend = _backendServicePool.GetNextBackend();

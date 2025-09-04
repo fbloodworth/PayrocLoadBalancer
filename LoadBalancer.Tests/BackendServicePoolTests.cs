@@ -13,6 +13,7 @@ namespace PayrocLoadBalancerTests
                 new("127.0.0.1", 9001),
                 new("127.0.0.1", 9002)
             };
+
             var pool = new BackendServicePool(services);
 
             var first = pool.GetNextBackend();

@@ -10,10 +10,10 @@ namespace PayrocLoadBalancer
         private readonly ILogger<LoadBalancerService> _logger;
         private readonly TcpLoadBalancer _loadBalancer;
 
-        public LoadBalancerService(ILogger<LoadBalancerService> logger, BackendServicePool pool, ITcpConnector connector)
+        public LoadBalancerService(ILogger<LoadBalancerService> logger, ILogger<TcpLoadBalancer> loadBalancerLogger, ILogger<TcpHealthChecker> healthCheckerLogger,BackendServicePool pool, ITcpConnector connector)
         {
             _logger = logger;
-            _loadBalancer = new TcpLoadBalancer(IPAddress.Any, 8000, pool.GetAllServices(), connector);
+            _loadBalancer = new TcpLoadBalancer(IPAddress.Any, 8000, pool.GetAllServices(), connector, loadBalancerLogger, healthCheckerLogger);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

@@ -1,7 +1,8 @@
-using System.Net;
-using System.Net.Sockets;
+using Microsoft.Extensions.Logging;
 using PayrocLoadBalancer.Interfaces;
 using PayrocLoadBalancer.Models;
+using System.Net;
+using System.Net.Sockets;
 
 namespace PayrocLoadBalancer
 {
@@ -11,25 +12,27 @@ namespace PayrocLoadBalancer
         private readonly BackendServicePool _backendServicePool;
         private readonly IHealthChecker _healthChecker;
         private readonly CancellationTokenSource _cts = new();
+        private readonly ILogger<TcpLoadBalancer> _logger;
 
-        public TcpLoadBalancer(IPAddress listenAddress, int listenPort, IEnumerable<BackendService> services, ITcpConnector tcpConnector)
+        public TcpLoadBalancer(IPAddress listenAddress, int listenPort, IEnumerable<BackendService> services, ITcpConnector tcpConnector, ILogger<TcpLoadBalancer> logger, ILogger<TcpHealthChecker> healthCheckLogger)
         {
             _listener = new TcpListener(listenAddress, listenPort);
             _backendServicePool = new BackendServicePool(services);
-            _healthChecker = new TcpHealthChecker(_backendServicePool, tcpConnector);
+            _logger = logger;
+            _healthChecker = new TcpHealthChecker(_backendServicePool, tcpConnector, healthCheckLogger);
         }
 
         public async Task StartAsync()
         {
             _listener.Start();
-            Console.WriteLine($"[LB] Listening on {_listener.LocalEndpoint}");
+            _logger.LogInformation($"[LB] Listening on {_listener.LocalEndpoint}");
 
             _ = _healthChecker.RunAsync(_cts.Token); //background health checking
 
             while (true)
             {
                 var client = await _listener.AcceptTcpClientAsync();
-                Console.WriteLine($"[LB] Client connected: {client.Client.RemoteEndPoint}");
+                _logger.LogInformation($"[LB] Client connected: {client.Client.RemoteEndPoint}");
                 _ = HandleClientAsync(client); // fire & forget
             }
         }
@@ -45,7 +48,7 @@ namespace PayrocLoadBalancer
             var backend = _backendServicePool.GetNextBackend();
             if (backend == null)
             {
-                Console.WriteLine("[LB] No healthy backends available. Closing client.");
+                _logger.LogInformation("[LB] No healthy backends available. Closing client.");
                 client.Close();
                 return;
             }
@@ -79,18 +82,18 @@ namespace PayrocLoadBalancer
                 await Task.WhenAny(t1, t2);
             }
             catch (IOException ioEx)
-            { 
-                Console.WriteLine($"[LB] IO Error with backend {backend}: {ioEx.Message}");
+            {
+                _logger.LogDebug($"[LB] IO Error with backend {backend}: {ioEx.Message}");
                 backend.MarkState(ServiceState.Down);
             }
             catch (SocketException sockEx)
             {
-                Console.WriteLine($"[LB] Socket Error with backend {backend}: {sockEx.Message}");
+                _logger.LogDebug($"[LB] Socket Error with backend {backend}: {sockEx.Message}");
                 backend.MarkState(ServiceState.Down);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[LB] Error with backend {backend}: {ex.Message}");
+                _logger.LogDebug($"[LB] Error with backend {backend}: {ex.Message}");
                 backend.MarkState(ServiceState.Down);
             }
             finally
@@ -103,8 +106,8 @@ namespace PayrocLoadBalancer
                     client.Close();
                 }
                 catch (Exception ex) 
-                { 
-                    Console.WriteLine($"[LB] Cleanup error: {ex.Message}");
+                {
+                    _logger.LogDebug($"[LB] Cleanup error: {ex.Message}");
                 }
 
                 backend.DecrementConnections();
@@ -113,7 +116,7 @@ namespace PayrocLoadBalancer
                 if (backend.IsRemoveable)
                 {
                     backend.MarkState(ServiceState.Down);
-                    Console.WriteLine($"[LB] Backend {backend} fully drained and removed from pool.");
+                    _logger.LogInformation($"[LB] Backend {backend} fully drained and removed from pool.");
                 }
 
             }

@@ -1,4 +1,5 @@
-﻿using PayrocLoadBalancer;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using PayrocLoadBalancer;
 using PayrocLoadBalancer.Interfaces;
 using PayrocLoadBalancer.Models;
 
@@ -24,7 +25,8 @@ namespace PayrocLoadBalancerTests
             backend.MarkState(ServiceState.Down);
 
             var pool = new BackendServicePool(new List<BackendService> { backend });
-            var checker = new TcpHealthChecker(pool, new FakeTcpConnector(true), checkIntervalMs: 5000, timeoutMs: 5000);
+            var logger = NullLogger<TcpHealthChecker>.Instance;
+            var checker = new TcpHealthChecker(pool, new FakeTcpConnector(true), logger, checkIntervalMs: 5000, timeoutMs: 5000);
 
             using var cts = new CancellationTokenSource();
             var task = checker.RunAsync(cts.Token);
@@ -44,7 +46,8 @@ namespace PayrocLoadBalancerTests
         {
             var backend = new BackendService("127.0.0.1", 9001);
             var pool = new BackendServicePool(new List<BackendService> { backend });
-            var checker = new TcpHealthChecker(pool, new FakeTcpConnector(false), checkIntervalMs: 5000, timeoutMs: 5000);
+            var logger = NullLogger<TcpHealthChecker>.Instance;
+            var checker = new TcpHealthChecker(pool, new FakeTcpConnector(false), logger, checkIntervalMs: 5000, timeoutMs: 5000);
 
             using var cts = new CancellationTokenSource();
             var task = checker.RunAsync(cts.Token);

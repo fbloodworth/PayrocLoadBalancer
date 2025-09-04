@@ -23,6 +23,7 @@ class Program
         {
             logging.ClearProviders();
             logging.AddConsole();
+            logging.SetMinimumLevel(LogLevel.Information);
         })
         .Build();
 

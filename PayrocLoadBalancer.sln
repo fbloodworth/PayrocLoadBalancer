@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PayrocLoadBalancer", "PayrocLoadBalancer\PayrocLoadBalancer.csproj", "{005BBE39-EB89-4F39-A216-D1104AA35FFD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LoadBalancer.Tests", "LoadBalancer.Tests\LoadBalancer.Tests.csproj", "{EF13A1AF-BE04-41C9-B196-98AE237F9EBB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{005BBE39-EB89-4F39-A216-D1104AA35FFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{005BBE39-EB89-4F39-A216-D1104AA35FFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{005BBE39-EB89-4F39-A216-D1104AA35FFD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EF13A1AF-BE04-41C9-B196-98AE237F9EBB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF13A1AF-BE04-41C9-B196-98AE237F9EBB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF13A1AF-BE04-41C9-B196-98AE237F9EBB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF13A1AF-BE04-41C9-B196-98AE237F9EBB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

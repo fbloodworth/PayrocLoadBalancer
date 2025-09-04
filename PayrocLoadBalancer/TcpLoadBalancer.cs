@@ -12,11 +12,11 @@ namespace PayrocLoadBalancer
         private readonly IHealthChecker _healthChecker;
         private readonly CancellationTokenSource _cts = new();
 
-        public TcpLoadBalancer(IPAddress listenAddress, int listenPort, IEnumerable<BackendService> services)
+        public TcpLoadBalancer(IPAddress listenAddress, int listenPort, IEnumerable<BackendService> services, ITcpConnector tcpConnector)
         {
             _listener = new TcpListener(listenAddress, listenPort);
             _backendServicePool = new BackendServicePool(services);
-            _healthChecker = new TcpHealthChecker(_backendServicePool);
+            _healthChecker = new TcpHealthChecker(_backendServicePool, tcpConnector);
         }
 
         public async Task StartAsync()

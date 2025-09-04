@@ -4,19 +4,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Threading;
 namespace PayrocLoadBalancer
 {
     public class TcpHealthChecker : IHealthChecker
     {
         private readonly BackendServicePool _pool;
-        private readonly int _checkIntervalsMs;
-        private readonly int _timeouts;
+        private readonly int _checkIntervalMs;
+        private readonly int _timeoutMs;
+        private readonly ITcpConnector _connector;
 
-        public TcpHealthChecker(BackendServicePool pool, int checkIntervalsMs = 5000, int timeouts = 500)
+        public TcpHealthChecker(BackendServicePool pool, ITcpConnector connector, int checkIntervalMs = 5000, int timeoutMs = 5000)
         {
             _pool = pool;
-            _checkIntervalsMs = checkIntervalsMs;
-            _timeouts = timeouts;
+            _connector = connector;
+            _checkIntervalMs = checkIntervalMs;
+            _timeoutMs = timeoutMs;
         }
 
         public async Task RunAsync(CancellationToken token)
@@ -27,11 +30,9 @@ namespace PayrocLoadBalancer
                     {
                         try
                         {
-                            using var tcpclient = new TcpClient();
-                            var connectTask = tcpclient.ConnectAsync(backend.Host, backend.Port);
-                            var completed = await Task.WhenAny(connectTask, Task.Delay(_timeouts, token));
+                            var isHealthy = await _connector.TryConnectAsync(backend.Host, backend.Port, _timeoutMs);
 
-                            if (completed == connectTask && tcpclient.Connected)
+                            if (isHealthy)
                             {
                                 backend.MarkState(Models.ServiceState.Up);
                             }
@@ -46,7 +47,7 @@ namespace PayrocLoadBalancer
                         }
                     }
                     
-                    await Task.Delay(_checkIntervalsMs, token);
+                    await Task.Delay(_checkIntervalMs, token);
             }
         }
 
